@@ -1,20 +1,9 @@
 const graphql = require("graphql");
 const _ = require("lodash");
+const axios = require("axios");
 
 const { GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLSchema } = graphql;
 
-const usersData = [
-  {
-    id: "2",
-    firstName: "Alex",
-    age: 21,
-  },
-  {
-    id: "1",
-    firstName: "Alex",
-    age: 21,
-  },
-];
 
 // 下面这个声明的是一个collection长什么样
 const UserType = new GraphQLObjectType({
@@ -35,11 +24,13 @@ const RootQuery = new GraphQLObjectType({
     user: {
       type: UserType,
       args: { id: { type: GraphQLString }, name: {type: GraphQLString} }, // input的参数
-      resolve(parentValue, args) {
-        const { id, name } = args;
-        console.log(id, name);
-        const result = _.find(usersData, { id: id });
-        return result;
+      async resolve (parentValue, args) {
+        const {id} = args
+        // 这边的关键点在于返回的数据一定要和期盼的数据的格式一一对应
+        const result = await axios.get(`http://localhost:3000/users/${id}`)
+        const resultData = result.data;
+        console.log(resultData)
+        return resultData;
       },
     },
   },
@@ -58,3 +49,7 @@ module.exports = new GraphQLSchema({
  *    }
  * }
  */
+
+ /**
+  * 到目前为止，可以把graphql堪称一个过滤数据的东西，每次获得了数据库脸的数据，我们通过graphql来进行格式化，
+  */

@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "json:server" : "json-server --watch db.json"
+    "json:server": "json-server --watch db.json"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.19.2",
     "express": "^4.17.1",
     "express-graphql": "^0.11.0",
     "graphql": "^14.7.0",
