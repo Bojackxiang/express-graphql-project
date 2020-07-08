@@ -34,12 +34,11 @@ const RootQuery = new GraphQLObjectType({
     // user collection handler
     user: {
       type: UserType,
-      args: { id: { type: GraphQLString } },
+      args: { id: { type: GraphQLString }, name: {type: GraphQLString} }, // input的参数
       resolve(parentValue, args) {
-        const { id } = args;
-
+        const { id, name } = args;
+        console.log(id, name);
         const result = _.find(usersData, { id: id });
-
         return result;
       },
     },
