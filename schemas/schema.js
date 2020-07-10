@@ -1,6 +1,7 @@
 const graphql = require("graphql");
 const _ = require("lodash");
 const axios = require("axios");
+const { update } = require("lodash");
 
 const {
   GraphQLObjectType,
@@ -8,7 +9,17 @@ const {
   GraphQLInt,
   GraphQLSchema,
   GraphQLList,
+  GraphQLNonNull,
 } = graphql;
+
+// Shared response for the request
+const Response = new GraphQLObjectType({
+  name:"Response",
+  fields: {
+    success: GraphQLString,
+    message: GraphQLString,
+  }
+})
 
 /**
  * 现在company和user两个是相互依赖的，我们需要解决这个 loop 的问题
@@ -31,6 +42,7 @@ const companyType = new GraphQLObjectType({
     },
   }),
 });
+
 
 // 下面这个声明的是一个collection长什么样
 // 相互依赖的解决问题
@@ -90,8 +102,82 @@ const RootQuery = new GraphQLObjectType({
   },
 });
 
+// mutation mutation
+const RootMutation = new GraphQLObjectType({
+  name: "Mutation",
+  fields: {
+    addUser: {
+      type: UserType,
+      args: {
+        firstName: { type: new GraphQLNonNull(GraphQLString) }, // graphql non-null 说明这个参数一定需要的
+        age: { type: new GraphQLNonNull(GraphQLInt) }, // you have to provide to this thing ...
+        companyId: { type: new GraphQLNonNull(GraphQLString) },
+      },
+      async resolve(parentValue, args) {
+        const { firstName, age, companyId } = args;
+        const result = await axios.post("http://localhost:3000/users", {
+          firstName,
+          age,
+          companyId,
+        });
+
+        const resp = result.data;
+
+        return resp;
+      },
+    },
+
+    deleteUser: {
+      // type: GraphQLString, // 如果只是return一个单一的数据的话，是不需要object来辅助的
+      type: GraphQLString,
+      args: {
+        userId: { type: new GraphQLNonNull(GraphQLString) }, // 传进来的id不能是null
+      },
+      async resolve(parentValue, args) {
+        const { userId } = args;
+        console.log("userId: ", userId);
+
+        await axios.delete(`http://localhost:3000/users/${userId}`);
+
+        //  return "Delete the user successfully"
+        return {
+          success: "yes",
+        };
+      },
+    },
+
+    editUser: {
+      type: Response,
+      args: { // !! 注意： mutation 的args不能是fields
+        id: { type: GraphQLString },
+        name: { type: GraphQLString },
+        age: { type: GraphQLInt },
+        companyId: { type: GraphQLString },
+      },
+      async resolve(parentValue, args) {
+        console.log(`mutation : edit user ......`);
+        const { id, name, companyId } = args;
+        console.log('edit user ...')
+        console.log("id, name, companyId: ", id, name, companyId);
+
+        const updateResult = await axios.patch(`http://localhost:3000/users/${id}`, {
+          companyId
+        })
+
+        console.log(updateResult);
+        
+        return {
+          success: 'success',
+          message: "message"
+        }
+      },
+    },
+  },
+});
+
 module.exports = new GraphQLSchema({
   query: RootQuery,
+  mutation: RootMutation,
 });
 
 /**
@@ -116,3 +202,11 @@ module.exports = new GraphQLSchema({
  * -> 4. 如果有嵌套，再resolve，来满足格式
  * -> 5. 返回给前端
  */
+
+ /**
+  * different between put and patch : put 会把所有的值都覆盖，如果密友提供，那么就是null
+  */
+
+  /**
+   * 如果没有 nonNull 的话，那么就意味着 这个 value 是 optional
+   */
